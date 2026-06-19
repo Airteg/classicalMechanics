@@ -1,0 +1,44 @@
+<h2 class="sr-only">Блоб точок у фазовому просторі зсувається й витягується під гамільтоновим потоком, але його площа лишається сталою — це теорема Ліувілля.</h2>
+<svg width="100%" viewBox="0 0 680 300" role="img" style="display:block;max-height:300px">
+<title>Збереження фазового об'єму</title><desc>Круглий блоб точок деформується зсувом, але площа не змінюється.</desc>
+<line x1="90" y1="150" x2="590" y2="150" stroke="var(--color-border-secondary)" stroke-width="1"/>
+<line x1="340" y1="30" x2="340" y2="270" stroke="var(--color-border-secondary)" stroke-width="1"/>
+<text x="584" y="170" text-anchor="end" style="font-size:14px;font-style:italic" fill="var(--color-text-secondary)">q</text>
+<text x="350" y="40" style="font-size:14px;font-style:italic" fill="var(--color-text-secondary)">p</text>
+<circle cx="340" cy="150" r="66" fill="none" stroke="var(--color-border-tertiary)" stroke-width="1" stroke-dasharray="4 4"/>
+<polygon id="blob" points="" fill="#1D9E75" fill-opacity="0.18" stroke="#1D9E75" stroke-width="1.5"/>
+<g id="dots"></g>
+</svg>
+<div style="display:flex;gap:12px;margin:14px 0 4px">
+  <div style="flex:1;background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:.8rem 1rem">
+    <p style="font-size:13px;color:var(--color-text-secondary);margin:0 0 4px">форма блоба</p>
+    <p style="font-size:18px;font-weight:500;margin:0" id="o-shape">коло</p>
+  </div>
+  <div style="flex:1;background:var(--color-background-info);border-radius:var(--border-radius-md);padding:.8rem 1rem">
+    <p style="font-size:13px;color:var(--color-text-info);margin:0 0 4px">площа (об'єм)</p>
+    <p style="font-size:18px;font-weight:500;margin:0;color:var(--color-text-info)" id="o-area">2.27 · стала</p>
+  </div>
+</div>
+<script>
+(function(){
+  var cx=340,cy=150,k=78,R=0.85,N=60;
+  var blob=document.getElementById('blob');
+  var dotsG=document.getElementById('dots');
+  var oShape=document.getElementById('o-shape'),oArea=document.getElementById('o-area');
+  var bnd=[];for(var i=0;i<N;i++){var a=2*Math.PI*i/N;bnd.push([R*Math.cos(a),R*Math.sin(a)]);}
+  var inter=[];var st=0.26;
+  for(var gx=-R;gx<=R+1e-9;gx+=st)for(var gy=-R;gy<=R+1e-9;gy+=st){if(gx*gx+gy*gy<R*R*0.85)inter.push([gx,gy]);}
+  var dotEls=inter.map(function(){var c=document.createElementNS('http://www.w3.org/2000/svg','circle');c.setAttribute('r','2.4');c.setAttribute('fill','#1D9E75');c.setAttribute('fill-opacity','0.65');dotsG.appendChild(c);return c;});
+  function area(pts){var A=0;for(var i=0;i<pts.length;i++){var j=(i+1)%pts.length;A+=pts[i][0]*pts[j][1]-pts[j][0]*pts[i][1];}return Math.abs(A)/2;}
+  function render(s){
+    var P=bnd.map(function(b){return [b[0]+s*b[1],b[1]];});
+    blob.setAttribute('points',P.map(function(p){return (cx+k*p[0]).toFixed(1)+','+(cy-k*p[1]).toFixed(1);}).join(' '));
+    for(var i=0;i<inter.length;i++){var q=inter[i][0]+s*inter[i][1],pp=inter[i][1];dotEls[i].setAttribute('cx',(cx+k*q).toFixed(1));dotEls[i].setAttribute('cy',(cy-k*pp).toFixed(1));}
+    oShape.textContent=Math.abs(s)<0.15?'коло':'витягнутий';
+    oArea.textContent=area(P).toFixed(2)+' · стала';
+  }
+  var reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if(reduce){render(1.1);}
+  else{var t0=null;function frame(t){if(t0===null)t0=t;var s=1.6*Math.sin((t-t0)/1000*0.8);render(s);requestAnimationFrame(frame);}requestAnimationFrame(frame);}
+})();
+</script>

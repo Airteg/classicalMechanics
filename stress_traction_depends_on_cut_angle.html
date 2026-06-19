@@ -1,0 +1,57 @@
+<h2 class="sr-only">У фіксованій точці зі сталим станом напруг вектор напруги на уявному розрізі змінюється залежно від кута розрізу; повзунок крутить кут, а нормальна й дотична складові оновлюються.</h2>
+<svg width="100%" viewBox="0 0 680 300" role="img" style="display:block;max-height:300px">
+<title>Залежність вектора напруги від орієнтації розрізу</title><desc>Лінія розрізу обертається; нормаль n і вектор напруги t змінюються разом із кутом.</desc>
+<defs><marker id="ntip" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="#888780" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></marker>
+<marker id="ttip" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="#993C1D" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>
+<line x1="180" y1="150" x2="500" y2="150" stroke="var(--color-border-tertiary)" stroke-width="1"/>
+<line x1="340" y1="40" x2="340" y2="260" stroke="var(--color-border-tertiary)" stroke-width="1"/>
+<line id="cut" x1="220" y1="150" x2="460" y2="150" stroke="#378ADD" stroke-width="3" stroke-linecap="round"/>
+<line id="narr" x1="340" y1="150" x2="394" y2="150" stroke="#888780" stroke-width="2" marker-end="url(#ntip)" stroke-dasharray="4 3"/>
+<line id="tarr" x1="340" y1="150" x2="420" y2="150" stroke="#D85A30" stroke-width="3" marker-end="url(#ttip)"/>
+<circle cx="340" cy="150" r="4" fill="var(--color-text-primary)"/>
+<text id="nlbl" x="400" y="150" style="font-size:14px;font-style:italic" fill="#5F5E5A">n</text>
+<text id="tlbl" x="426" y="150" style="font-size:14px;font-weight:500;font-style:italic" fill="#993C1D">t</text>
+<text x="466" y="166" style="font-size:12px" fill="#185FA5">розріз</text>
+</svg>
+<div style="display:flex;align-items:center;gap:12px;margin:14px 0 14px">
+  <span style="font-size:13px;color:var(--color-text-secondary);min-width:78px">кут розрізу</span>
+  <input type="range" id="ang" min="0" max="180" value="0" step="1" style="flex:1">
+  <span style="font-size:13px;font-weight:500;min-width:36px;text-align:right" id="ang-out">0°</span>
+</div>
+<div style="display:flex;gap:12px">
+  <div style="flex:1;background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:.8rem 1rem">
+    <p style="font-size:13px;color:var(--color-text-secondary);margin:0 0 4px">нормальна напруга σₙ</p>
+    <p style="font-size:20px;font-weight:500;margin:0" id="o-sn">3.00</p>
+  </div>
+  <div style="flex:1;background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:.8rem 1rem">
+    <p style="font-size:13px;color:var(--color-text-secondary);margin:0 0 4px">дотична (зсув) τ</p>
+    <p style="font-size:20px;font-weight:500;margin:0" id="o-ts">0.00</p>
+  </div>
+</div>
+<script>
+(function(){
+  var cx=340,cy=150,sxx=3,syy=1,sxy=0.8;
+  var cut=document.getElementById('cut'),narr=document.getElementById('narr'),tarr=document.getElementById('tarr');
+  var nlbl=document.getElementById('nlbl'),tlbl=document.getElementById('tlbl');
+  var ang=document.getElementById('ang'),angOut=document.getElementById('ang-out');
+  var oSn=document.getElementById('o-sn'),oTs=document.getElementById('o-ts');
+  function render(){
+    var phi=ang.value*Math.PI/180;
+    var c=Math.cos(phi),s=Math.sin(phi);
+    var tx=sxx*c+sxy*s, ty=sxy*c+syy*s;
+    var sn=tx*c+ty*s, tau=-tx*s+ty*c;
+    angOut.textContent=ang.value+'\u00b0';
+    oSn.textContent=sn.toFixed(2);oTs.textContent=tau.toFixed(2);
+    var L=120;
+    cut.setAttribute('x1',cx-L*(-s));cut.setAttribute('y1',cy+L*c);
+    cut.setAttribute('x2',cx+L*(-s));cut.setAttribute('y2',cy-L*c);
+    var nx=cx+54*c, ny=cy-54*s;
+    narr.setAttribute('x2',nx);narr.setAttribute('y2',ny);
+    nlbl.setAttribute('x',cx+66*c);nlbl.setAttribute('y',cy-66*s+4);
+    var tex=cx+26*tx, tey=cy-26*ty;
+    tarr.setAttribute('x2',tex);tarr.setAttribute('y2',tey);
+    tlbl.setAttribute('x',cx+30*tx+(tx>=0?4:-12));tlbl.setAttribute('y',cy-30*ty+4);
+  }
+  ang.addEventListener('input',render);render();
+})();
+</script>

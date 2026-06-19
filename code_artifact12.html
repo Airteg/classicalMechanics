@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Механіка суцільного середовища: Основи та Тензор напруг</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<!-- Chosen Palette: Energetic & Professional (Navy #0F172A, Bright Blue #3B82F6, Vibrant Orange #F97316, Soft Amber #FEF3C7, Slate #64748B) -->
+<!-- Application Structure Plan: The SPA is structured as a linear, scrollable interactive infographic. It begins with foundational concepts (macroscopic particles, density), moves to a comparative analysis of forces acting on the media, and culminates in a deep dive into the mechanical stress tensor. This logical flow builds user understanding step-by-step. Grid layouts and distinct cards are used to separate concepts, making complex physics digestible without mirroring a textbook's dry structure. -->
+<!-- Visualization & Content Choices: 
+     - Data Point: Mass vs Surface Forces -> Goal: Compare -> Viz: Radar Chart -> Justification: Effectively compares multiple abstract attributes (volume dependence, surface dependence, external origin, internal origin) across two categories. Library: Chart.js Canvas. NO SVG.
+     - Data Point: Stress Tensor Components -> Goal: Organize/Compare -> Viz: Bar Chart -> Justification: Clearly displays the 9 components, visually grouping normal vs shear stresses and highlighting the mathematical symmetry (equal heights for ij and ji components). Library: Chart.js Canvas. NO SVG.
+     - Data Point: Tensor Matrix -> Goal: Organize -> Viz: HTML/Tailwind Grid Matrix -> Justification: Best way to represent a mathematical 3x3 matrix cleanly on the web. NO SVG. -->
+<!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+<style>
+.chart-container {
+    position: relative;
+    width: 100%;
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+    height: 350px;
+    max-height: 400px;
+}
+@media (min-width: 768px) {
+    .chart-container {
+        height: 380px;
+    }
+}
+body {
+    background-color: #F8FAFC;
+    color: #0F172A;
+    font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+.glass-card {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
+}
+</style>
+</head>
+<body class="antialiased min-h-screen pb-20">
+
+<header class="bg-[#0F172A] text-white py-16 px-4 mb-10 border-b-4 border-[#F97316]">
+    <div class="max-w-5xl mx-auto text-center">
+        <div class="inline-block bg-[#F97316] text-white px-3 py-1 rounded-full text-sm font-bold tracking-wider mb-4 uppercase">Інфографіка</div>
+        <h1 class="text-4xl md:text-6xl font-extrabold mb-6 leading-tight">Механіка Суцільного Середовища</h1>
+        <p class="text-xl text-[#94A3B8] max-w-3xl mx-auto font-light">Відмовляючись від розгляду окремих атомів, ми описуємо гази, рідини та тверді тіла як неперервні поля. Дослідіть фундаментальні поняття, класифікацію сил та архітектуру тензора механічних напруг.</p>
+    </div>
+</header>
+
+<main class="max-w-6xl mx-auto px-4 space-y-12">
+
+    <section class="glass-card rounded-2xl p-8 border border-slate-100">
+        <h2 class="text-3xl font-bold mb-4 flex items-center text-[#0F172A]"><span class="text-[#3B82F6] mr-3">&#9632;</span> Фундамент МСС</h2>
+        <p class="text-lg text-slate-600 mb-8 leading-relaxed">Механіка суцільного середовища (МСС) базується на уявленні про неперервний розподіл маси. Це дозволяє описувати стан системи макроскопічними функціями просторових координат та часу, ігноруючи дискретну молекулярну структуру речовини.</p>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div class="bg-slate-50 p-6 rounded-xl border-l-4 border-[#3B82F6]">
+                <h3 class="text-xl font-bold mb-2">Макроскопічна Частинка</h3>
+                <p class="text-slate-600">Елементарний об'єм середовища <b>dV</b>. Математично він нескінченно малий (dV &rarr; 0), але фізично — містить величезну кількість атомів, що дозволяє застосовувати закони термодинаміки.</p>
+            </div>
+            <div class="bg-slate-50 p-6 rounded-xl border-l-4 border-[#F97316]">
+                <h3 class="text-xl font-bold mb-2">Поле Густини &rho;</h3>
+                <p class="text-slate-600 mb-4">Основна характеристика розподілу маси в середовищі. Є функцією координат та часу.</p>
+                <div class="bg-white px-4 py-3 rounded text-center shadow-inner font-mono text-lg border border-slate-200">
+                    &rho; = lim <sub>&Delta;V &rarr; 0</sub> (&Delta;m / &Delta;V)
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="glass-card rounded-2xl p-8 border border-slate-100">
+        <h2 class="text-3xl font-bold mb-4 flex items-center text-[#0F172A]"><span class="text-[#3B82F6] mr-3">&#9650;</span> Сили в Суцільному Середовищі</h2>
+        <p class="text-lg text-slate-600 mb-8 leading-relaxed">Взаємодія всередині середовища та із зовнішнім світом описується двома принципово різними класами сил. Розуміння їхньої природи є ключовим для побудови рівнянь руху.</p>
+        
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
+            <div class="space-y-6">
+                <div class="bg-white p-5 rounded-lg shadow-sm border border-slate-200 hover:shadow-md transition-shadow">
+                    <div class="flex items-start gap-4">
+                        <div class="bg-[#FEF3C7] text-[#D97706] p-3 rounded-lg text-2xl">&#127758;</div>
+                        <div>
+                            <h4 class="text-lg font-bold text-[#0F172A]">Масові (Об'ємні) Сили</h4>
+                            <p class="text-slate-600 text-sm mt-1">Діють на кожен елементарний об'єм всередині тіла. Пропорційні масі об'єму.</p>
+                            <div class="mt-2 text-xs font-mono bg-slate-100 inline-block px-2 py-1 rounded">dF<sub>m</sub> = f &middot; &rho; &middot; dV</div>
+                            <p class="text-xs text-slate-500 mt-1">Приклади: Гравітація, сили інерції.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-white p-5 rounded-lg shadow-sm border border-slate-200 hover:shadow-md transition-shadow">
+                    <div class="flex items-start gap-4">
+                        <div class="bg-[#DBEAFE] text-[#2563EB] p-3 rounded-lg text-2xl">&#10014;</div>
+                        <div>
+                            <h4 class="text-lg font-bold text-[#0F172A]">Поверхневі Сили</h4>
+                            <p class="text-slate-600 text-sm mt-1">Діють лише на поверхню, що обмежує виділений об'єм. Пропорційні площі взаємодії.</p>
+                            <div class="mt-2 text-xs font-mono bg-slate-100 inline-block px-2 py-1 rounded">dF<sub>s</sub> = p<sub>n</sub> &middot; dS</div>
+                            <p class="text-xs text-slate-500 mt-1">Приклади: Тиск, тертя між шарами.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white p-6 rounded-xl border border-slate-100 shadow-inner">
+                <h4 class="text-center font-bold text-slate-700 mb-4">Аналіз профілю сил</h4>
+                <div class="chart-container">
+                    <canvas id="forcesChart"></canvas>
+                </div>
+                <p class="text-center text-sm text-slate-500 mt-4">Радарна діаграма демонструє концептуальні відмінності між властивостями масових та поверхневих сил.</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="glass-card rounded-2xl p-8 border border-slate-100">
+        <h2 class="text-3xl font-bold mb-4 flex items-center text-[#0F172A]"><span class="text-[#F97316] mr-3">&#9724;</span> Тензор Механічних Напруг (&sigma;<sub>ik</sub>)</h2>
+        <p class="text-lg text-slate-600 mb-8 leading-relaxed">Поверхневі сили складні тим, що їхня дія залежить не лише від положення площадки, але й від її <b>орієнтації</b>. Для повного опису напруженого стану в точці вводиться тензор напруг — матриця 3&times;3, що пов'язує вектор сили з вектором площі: <span class="font-mono bg-slate-100 px-2 rounded">dF<sub>i</sub> = &Sigma; &sigma;<sub>ik</sub> dS<sub>k</sub></span>.</p>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-10">
+            <div class="bg-[#0F172A] text-white p-6 rounded-xl flex flex-col justify-center items-center shadow-lg">
+                <h3 class="text-[#94A3B8] text-sm uppercase tracking-widest mb-4">Матриця Тензора</h3>
+                <div class="grid grid-cols-3 gap-3 text-center w-full font-mono text-lg">
+                    <div class="bg-[#1E293B] p-2 rounded text-[#3B82F6] font-bold">&sigma;<sub>xx</sub></div>
+                    <div class="bg-[#1E293B] p-2 rounded text-[#F97316]">&sigma;<sub>xy</sub></div>
+                    <div class="bg-[#1E293B] p-2 rounded text-[#F97316]">&sigma;<sub>xz</sub></div>
+                    
+                    <div class="bg-[#1E293B] p-2 rounded text-[#F97316]">&sigma;<sub>yx</sub></div>
+                    <div class="bg-[#1E293B] p-2 rounded text-[#3B82F6] font-bold">&sigma;<sub>yy</sub></div>
+                    <div class="bg-[#1E293B] p-2 rounded text-[#F97316]">&sigma;<sub>yz</sub></div>
+                    
+                    <div class="bg-[#1E293B] p-2 rounded text-[#F97316]">&sigma;<sub>zx</sub></div>
+                    <div class="bg-[#1E293B] p-2 rounded text-[#F97316]">&sigma;<sub>zy</sub></div>
+                    <div class="bg-[#1E293B] p-2 rounded text-[#3B82F6] font-bold">&sigma;<sub>zz</sub></div>
+                </div>
+                <p class="text-xs text-[#64748B] mt-4 text-center">Діагональ - нормальні напруги. Інші - дотичні.</p>
+            </div>
+
+            <div class="lg:col-span-2 space-y-4">
+                <div class="bg-white p-5 border border-slate-200 rounded-lg flex items-start gap-4">
+                    <div class="text-3xl text-[#3B82F6]">&#8596;</div>
+                    <div>
+                        <h4 class="font-bold text-lg text-slate-800">Нормальні Напруги (&sigma;<sub>xx</sub>, &sigma;<sub>yy</sub>, &sigma;<sub>zz</sub>)</h4>
+                        <p class="text-slate-600 text-sm mt-1">Діють перпендикулярно до граней. Відповідають за розтяг або стиск середовища (аналог гідростатичного тиску).</p>
+                    </div>
+                </div>
+                <div class="bg-white p-5 border border-slate-200 rounded-lg flex items-start gap-4">
+                    <div class="text-3xl text-[#F97316]">&#8644;</div>
+                    <div>
+                        <h4 class="font-bold text-lg text-slate-800">Дотичні (Зсувні) Напруги (&sigma;<sub>xy</sub>, &sigma;<sub>xz</sub>...)</h4>
+                        <p class="text-slate-600 text-sm mt-1">Діють паралельно до граней. Відповідають за тертя між шарами рідини або за деформацію зсуву твердого тіла.</p>
+                    </div>
+                </div>
+                <div class="bg-[#FEF3C7] p-5 border border-[#FDE68A] rounded-lg">
+                    <h4 class="font-bold text-lg text-[#92400E] flex items-center gap-2">&#9881; Властивість Симетрії</h4>
+                    <p class="text-[#B45309] text-sm mt-1">З рівняння збереження моменту імпульсу випливає: <b>&sigma;<sub>ik</sub> = &sigma;<sub>ki</sub></b>. З 9 компонент незалежними є лише 6.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white p-6 rounded-xl border border-slate-100 shadow-sm mt-8">
+            <h3 class="text-xl font-bold mb-6 text-center text-slate-800">Розподіл компонент тензора напруг (Візуалізація симетрії)</h3>
+            <div class="chart-container">
+                <canvas id="tensorChart"></canvas>
+            </div>
+            <p class="text-center text-sm text-slate-500 mt-4">На графіку показано гіпотетичний напружений стан. Зверніть увагу, що стовпчики дотичних напруг утворюють ідеальні пари (наприклад, &sigma;<sub>xy</sub> дорівнює &sigma;<sub>yx</sub>), що підтверджує симетрію тензора.</p>
+        </div>
+    </section>
+</main>
+
+<script>
+function wrapLabel(label) {
+    if (label.length <= 16) return label;
+    const words = label.split(' ');
+    const lines = [];
+    let currentLine = '';
+    words.forEach(word => {
+        if ((currentLine + word).length > 16) {
+            if (currentLine.trim() !== '') lines.push(currentLine.trim());
+            currentLine = word + ' ';
+        } else {
+            currentLine += word + ' ';
+        }
+    });
+    if (currentLine.trim() !== '') lines.push(currentLine.trim());
+    return lines;
+}
+
+const tooltipConfig = {
+    callbacks: {
+        title: function(tooltipItems) {
+            const item = tooltipItems[0];
+            let label = item.chart.data.labels[item.dataIndex];
+            if (Array.isArray(label)) {
+                return label.join(' ');
+            } else {
+                return label;
+            }
+        }
+    }
+};
+
+document.addEventListener('DOMContentLoaded', function() {
+    
+    const ctxRadar = document.getElementById('forcesChart').getContext('2d');
+    const radarLabelsRaw = ['Залежність від об\'єму/маси', 'Залежність від площі поверхні', 'Зовнішня природа (поля)', 'Внутрішня контактна взаємодія'];
+    const radarLabelsProcessed = radarLabelsRaw.map(wrapLabel);
+
+    new Chart(ctxRadar, {
+        type: 'radar',
+        data: {
+            labels: radarLabelsProcessed,
+            datasets: [
+                {
+                    label: 'Масові сили',
+                    data: [100, 0, 90, 10],
+                    backgroundColor: 'rgba(249, 115, 22, 0.2)',
+                    borderColor: 'rgba(249, 115, 22, 1)',
+                    pointBackgroundColor: 'rgba(249, 115, 22, 1)',
+                    borderWidth: 2
+                },
+                {
+                    label: 'Поверхневі сили',
+                    data: [0, 100, 10, 90],
+                    backgroundColor: 'rgba(59, 130, 246, 0.2)',
+                    borderColor: 'rgba(59, 130, 246, 1)',
+                    pointBackgroundColor: 'rgba(59, 130, 246, 1)',
+                    borderWidth: 2
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                r: {
+                    angleLines: { color: 'rgba(0, 0, 0, 0.05)' },
+                    grid: { color: 'rgba(0, 0, 0, 0.05)' },
+                    pointLabels: {
+                        font: { size: 11, family: 'sans-serif' },
+                        color: '#64748B'
+                    },
+                    ticks: { display: false }
+                }
+            },
+            plugins: {
+                legend: { position: 'bottom' },
+                tooltip: tooltipConfig
+            }
+        }
+    });
+
+    const ctxBar = document.getElementById('tensorChart').getContext('2d');
+    const barLabelsRaw = ['σ_xx (Нормальна)', 'σ_yy (Нормальна)', 'σ_zz (Нормальна)', 'σ_xy (Зсувна)', 'σ_yx (Зсувна)', 'σ_xz (Зсувна)', 'σ_zx (Зсувна)', 'σ_yz (Зсувна)', 'σ_zy (Зсувна)'];
+    const barLabelsProcessed = barLabelsRaw.map(wrapLabel);
+    
+    const tensorData = [80, 60, 40, 50, 50, -30, -30, 20, 20];
+    const backgroundColors = [
+        '#3B82F6', '#3B82F6', '#3B82F6', 
+        '#F97316', '#F97316', 
+        '#F59E0B', '#F59E0B', 
+        '#EF4444', '#EF4444'  
+    ];
+
+    new Chart(ctxBar, {
+        type: 'bar',
+        data: {
+            labels: barLabelsProcessed,
+            datasets: [{
+                label: 'Умовна величина напруги (МПа)',
+                data: tensorData,
+                backgroundColor: backgroundColors,
+                borderRadius: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: false,
+                    grid: { color: '#F1F5F9' },
+                    title: { display: true, text: 'Величина', color: '#94A3B8' }
+                },
+                x: {
+                    grid: { display: false },
+                    ticks: {
+                        font: { size: 11 },
+                        color: '#64748B'
+                    }
+                }
+            },
+            plugins: {
+                legend: { display: false },
+                tooltip: tooltipConfig
+            }
+        }
+    });
+
+});
+</script>
+</body>
+</html>

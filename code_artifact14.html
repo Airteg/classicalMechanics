@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Візуалізація: Рівняння неперервності</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f8f9fa;
+            color: #333;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        .controls {
+            margin: 20px 0;
+            padding: 15px;
+            background: #e9ecef;
+            border-radius: 8px;
+            display: inline-block;
+        }
+        canvas {
+            background: #ffffff;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            margin-top: 10px;
+        }
+        .stats {
+            font-size: 1.1em;
+            margin-top: 15px;
+            line-height: 1.5;
+        }
+        input[type=range] {
+            width: 200px;
+            vertical-align: middle;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Рівняння неперервності (v₁S₁ = v₂S₂)</h2>
+    <p>Стаціонарна течія ідеальної нестисливої рідини</p>
+    
+    <div class="controls">
+        <label for="s2-slider"><strong>Змінити площу перерізу S₂:</strong></label>
+        <input type="range" id="s2-slider" min="30" max="180" value="60">
+    </div>
+
+    <div class="stats" id="stats"></div>
+
+    <canvas id="fluidCanvas" width="700" height="300"></canvas>
+</div>
+
+<script>
+    const canvas = document.getElementById('fluidCanvas');
+    const ctx = canvas.getContext('2d');
+    const slider = document.getElementById('s2-slider');
+    const stats = document.getElementById('stats');
+
+    // Базові параметри лівої частини труби (константи)
+    const S1 = 120; // Площа перерізу (висота у пікселях)
+    const v1 = 2;   // Швидкість (пікселів за кадр)
+    
+    // Параметри правої частини труби (змінні)
+    let S2 = parseInt(slider.value);
+    let v2 = (S1 * v1) / S2;
+
+    // Створення частинок рідини
+    const numParticles = 300;
+    let particles = [];
+    for(let i = 0; i < numParticles; i++) {
+        particles.push({
+            x: Math.random() * canvas.width,
+            yRel: Math.random() // Відносне положення по висоті від 0 до 1
+        });
+    }
+
+    // Оновлення параметрів при русі повзунка
+    slider.addEventListener('input', function() {
+        S2 = parseInt(this.value);
+        v2 = (S1 * v1) / S2;
+    });
+
+    function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        const midX = canvas.width / 2;
+        const centerY = canvas.height / 2;
+
+        // --- Малювання труби ---
+        ctx.fillStyle = '#e3f2fd'; // Світло-блакитний колір рідини
+        
+        // Ліва секція
+        ctx.fillRect(0, centerY - S1/2, midX, S1);
+        // Права секція
+        ctx.fillRect(midX, centerY - S2/2, midX, S2);
+
+        // Межі труби
+        ctx.strokeStyle = '#1e88e5';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        // Верхня стінка
+        ctx.moveTo(0, centerY - S1/2);
+        ctx.lineTo(midX, centerY - S1/2);
+        ctx.lineTo(midX, centerY - S2/2);
+        ctx.lineTo(canvas.width, centerY - S2/2);
+        // Нижня стінка
+        ctx.moveTo(0, centerY + S1/2);
+        ctx.lineTo(midX, centerY + S1/2);
+        ctx.lineTo(midX, centerY + S2/2);
+        ctx.lineTo(canvas.width, centerY + S2/2);
+        ctx.stroke();
+
+        // --- Анімація частинок ---
+        ctx.fillStyle = '#1565c0';
+        
+        for (let p of particles) {
+            let isLeft = p.x < midX;
+            let currentV = isLeft ? v1 : v2;
+            let currentS = isLeft ? S1 : S2;
+
+            // Рух по горизонталі
+            p.x += currentV;
+            
+            // Якщо частинка вийшла за межі екрану, повертаємо її на початок
+            if (p.x > canvas.width) {
+                p.x = 0;
+                p.yRel = Math.random();
+            }
+
+            // Обчислення реальної Y координати на основі відносного положення
+            let realY = (centerY - currentS/2) + (p.yRel * currentS);
+
+            // Якщо частинка на стику, плавно зсуваємо її (проста апроксимація)
+            if (Math.abs(p.x - midX) < 10) {
+                 let progress = (p.x - (midX - 10)) / 20; // Від 0 до 1 в зоні переходу
+                 let startY = (centerY - S1/2) + (p.yRel * S1);
+                 let endY = (centerY - S2/2) + (p.yRel * S2);
+                 realY = startY + (endY - startY) * progress;
+            }
+
+            ctx.beginPath();
+            ctx.arc(p.x, realY, 2.5, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        // --- Оновлення тексту статистики ---
+        stats.innerHTML = `
+            Вхід (ліворуч): S₁ = <strong>${S1}</strong> ум.од., v₁ = <strong>${v1.toFixed(1)}</strong> ум.од/с<br>
+            Вихід (праворуч): S₂ = <strong>${S2}</strong> ум.од., v₂ = <strong>${v2.toFixed(1)}</strong> ум.од/с<br>
+            <span style="color: #d32f2f; font-weight: bold;">
+                Масова витрата (v×S): ${(S1*v1).toFixed(0)} = ${(S2*v2).toFixed(0)} = const
+            </span>
+        `;
+
+        requestAnimationFrame(draw);
+    }
+
+    // Запуск анімації
+    draw();
+</script>
+
+</body>
+</html>

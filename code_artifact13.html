@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Рівняння руху МСС: Дія сил на елемент</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background: #fdfbf7; color: #2d3748; font-family: sans-serif; }
+        .canvas-container { width: 100%; max-width: 600px; height: 350px; background: white; border: 1px solid #eaddcf; border-radius: 8px; margin: 0 auto; position: relative; overflow: hidden; }
+        canvas { display: block; width: 100%; height: 100%; }
+        input[type=range] { width: 100%; accent-color: #d97757; }
+    </style>
+</head>
+<body class="p-4 md:p-8 flex justify-center">
+
+    <main class="w-full max-w-4xl bg-white shadow-lg rounded-2xl border border-[#eaddcf] p-6 flex flex-col md:flex-row gap-6">
+        
+        <div class="flex-1 flex flex-col gap-6">
+            <div>
+                <h1 class="text-2xl font-bold text-[#d97757] mb-2">Прискорення елемента МСС</h1>
+                <p class="text-sm text-gray-600 mb-4">
+                    Згідно з рівнянням Коші, елемент середовища прискорюється, якщо є дисбаланс масових сил (гравітація) або поверхневих напруг (градієнт тиску).
+                </p>
+            </div>
+
+            <div class="space-y-5 bg-[#fdfbf7] p-4 rounded-xl border border-[#eaddcf]">
+                <!-- Force X (Pressure Left) -->
+                <div>
+                    <label class="flex justify-between text-sm font-bold mb-1">
+                        <span>Напруга (Тиск) зліва ($\sigma_1$):</span>
+                        <span id="val-p1">50</span>
+                    </label>
+                    <input type="range" id="sl-p1" min="0" max="100" value="50">
+                </div>
+                
+                <!-- Force X (Pressure Right) -->
+                <div>
+                    <label class="flex justify-between text-sm font-bold mb-1">
+                        <span>Напруга (Тиск) справа ($\sigma_2$):</span>
+                        <span id="val-p2">50</span>
+                    </label>
+                    <input type="range" id="sl-p2" min="0" max="100" value="50">
+                </div>
+
+                <!-- Gravity -->
+                <div>
+                    <label class="flex justify-between text-sm font-bold mb-1">
+                        <span>Масова сила (Гравітація $f_y$):</span>
+                        <span id="val-g">0</span>
+                    </label>
+                    <input type="range" id="sl-g" min="-50" max="50" value="0">
+                </div>
+
+                <div class="pt-4 border-t border-[#eaddcf] flex gap-2">
+                    <button id="btn-start" class="flex-1 bg-[#d97757] hover:bg-[#c26244] text-white font-bold py-2 rounded transition">Відпустити</button>
+                    <button id="btn-reset" class="flex-1 bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 rounded transition">Скинути</button>
+                </div>
+            </div>
+            
+            <div class="text-xs bg-blue-50 p-3 rounded text-blue-800 border border-blue-200">
+                <strong>Секрет:</strong> Якщо $\sigma_1 = \sigma_2$, градієнт $\partial \sigma / \partial x = 0$. Об'єм стискається, але <b>не прискорюється</b> (стоїть на місці). Рух починається лише при <b>різниці</b> напруг!
+            </div>
+        </div>
+
+        <div class="flex-[1.5]">
+            <div class="canvas-container">
+                <canvas id="simCanvas"></canvas>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        const canvas = document.getElementById('simCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        const slP1 = document.getElementById('sl-p1');
+        const slP2 = document.getElementById('sl-p2');
+        const slG = document.getElementById('sl-g');
+        
+        const valP1 = document.getElementById('val-p1');
+        const valP2 = document.getElementById('val-p2');
+        const valG = document.getElementById('val-g');
+
+        let p1 = 50, p2 = 50, g = 0;
+        let isRunning = false;
+        
+        // Element properties
+        let rect = { x: 0, y: 0, vx: 0, vy: 0, size: 60, mass: 1 };
+        
+        function resize() {
+            canvas.width = canvas.parentElement.clientWidth;
+            canvas.height = canvas.parentElement.clientHeight;
+            resetSim();
+        }
+        window.addEventListener('resize', resize);
+
+        function resetSim() {
+            isRunning = false;
+            rect.x = canvas.width / 2;
+            rect.y = canvas.height / 2;
+            rect.vx = 0;
+            rect.vy = 0;
+            draw();
+        }
+
+        function updateValues() {
+            p1 = parseInt(slP1.value);
+            p2 = parseInt(slP2.value);
+            g = parseInt(slG.value);
+            
+            valP1.textContent = p1;
+            valP2.textContent = p2;
+            valG.textContent = g;
+            if(!isRunning) draw();
+        }
+
+        [slP1, slP2, slG].forEach(el => el.addEventListener('input', updateValues));
+        
+        document.getElementById('btn-reset').addEventListener('click', () => {
+            slP1.value = 50; slP2.value = 50; slG.value = 0;
+            updateValues();
+            resetSim();
+        });
+
+        document.getElementById('btn-start').addEventListener('click', () => {
+            isRunning = true;
+            requestAnimationFrame(loop);
+        });
+
+        function drawArrow(fromX, fromY, toX, toY, color) {
+            const headlen = 10;
+            const dx = toX - fromX;
+            const dy = toY - fromY;
+            const angle = Math.atan2(dy, dx);
+            if (Math.abs(dx) < 1 && Math.abs(dy) < 1) return;
+
+            ctx.beginPath();
+            ctx.strokeStyle = color;
+            ctx.fillStyle = color;
+            ctx.lineWidth = 3;
+            ctx.moveTo(fromX, fromY);
+            ctx.lineTo(toX, toY);
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.moveTo(toX, toY);
+            ctx.lineTo(toX - headlen * Math.cos(angle - Math.PI / 6), toY - headlen * Math.sin(angle - Math.PI / 6));
+            ctx.lineTo(toX - headlen * Math.cos(angle + Math.PI / 6), toY - headlen * Math.sin(angle + Math.PI / 6));
+            ctx.fill();
+        }
+
+        function updatePhysics() {
+            // F_surface = P1 - P2 (Force from left minus force from right)
+            const forceX = (p1 - p2) * 0.05; 
+            // F_mass = mass * g
+            const forceY = g * 0.05;
+
+            // a = F/m
+            rect.vx += forceX / rect.mass;
+            rect.vy += forceY / rect.mass;
+
+            // Apply friction for stability
+            rect.vx *= 0.98;
+            rect.vy *= 0.98;
+
+            rect.x += rect.vx;
+            rect.y += rect.vy;
+
+            // Bounds
+            if (rect.x < rect.size/2 || rect.x > canvas.width - rect.size/2) rect.vx *= -0.5;
+            if (rect.y < rect.size/2 || rect.y > canvas.height - rect.size/2) rect.vy *= -0.5;
+            
+            rect.x = Math.max(rect.size/2, Math.min(canvas.width - rect.size/2, rect.x));
+            rect.y = Math.max(rect.size/2, Math.min(canvas.height - rect.size/2, rect.y));
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw grid
+            ctx.strokeStyle = '#f0f0f0';
+            ctx.lineWidth = 1;
+            for(let i=0; i<canvas.width; i+=40) { ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, canvas.height); ctx.stroke(); }
+            for(let i=0; i<canvas.height; i+=40) { ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(canvas.width, i); ctx.stroke(); }
+
+            // Element Compression Visual
+            const compressAmount = (p1 + p2) * 0.1;
+            const currentSizeX = rect.size - compressAmount;
+
+            // Draw Element
+            ctx.fillStyle = 'rgba(59, 130, 246, 0.2)'; // Blueish
+            ctx.strokeStyle = '#3b82f6';
+            ctx.lineWidth = 2;
+            ctx.fillRect(rect.x - currentSizeX/2, rect.y - rect.size/2, currentSizeX, rect.size);
+            ctx.strokeRect(rect.x - currentSizeX/2, rect.y - rect.size/2, currentSizeX, rect.size);
+
+            // Draw Forces
+            if (p1 > 0) drawArrow(rect.x - currentSizeX/2 - p1, rect.y, rect.x - currentSizeX/2, rect.y, '#eab308'); // Left push
+            if (p2 > 0) drawArrow(rect.x + currentSizeX/2 + p2, rect.y, rect.x + currentSizeX/2, rect.y, '#eab308'); // Right push
+            if (g !== 0) {
+                const gDir = g > 0 ? 1 : -1;
+                drawArrow(rect.x, rect.y, rect.x, rect.y + g * 1.5, '#ef4444'); // Gravity
+            }
+        }
+
+        function loop() {
+            if (!isRunning) return;
+            updatePhysics();
+            draw();
+            requestAnimationFrame(loop);
+        }
+
+        resize();
+        updateValues();
+    </script>
+</body>
+</html>
