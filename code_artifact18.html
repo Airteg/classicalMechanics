@@ -22,16 +22,8 @@
             max-width: 800px;
             width: 100%;
         }
-        h2 {
-            text-align: center;
-            color: #1a252f;
-            margin-top: 0;
-        }
-        p.description {
-            text-align: center;
-            color: #7f8c8d;
-            margin-bottom: 25px;
-        }
+        h2 { text-align: center; color: #1a252f; margin-top: 0; }
+        p.description { text-align: center; color: #7f8c8d; margin-bottom: 25px; }
         .controls-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -48,6 +40,7 @@
             padding: 10px;
             background: white;
             border-radius: 6px;
+            flex-wrap: wrap;
         }
         .model-selector label {
             font-weight: bold;
@@ -56,21 +49,10 @@
             border-radius: 4px;
             transition: background 0.2s;
         }
-        .model-selector input[type="radio"] {
-            margin-right: 8px;
-        }
-        .slider-group {
-            display: flex;
-            flex-direction: column;
-        }
-        .slider-group label {
-            font-weight: 600;
-            margin-bottom: 8px;
-        }
-        input[type="range"] {
-            width: 100%;
-            cursor: pointer;
-        }
+        .model-selector input[type="radio"] { margin-right: 8px; }
+        .slider-group { display: flex; flex-direction: column; }
+        .slider-group label { font-weight: 600; margin-bottom: 8px; }
+        input[type="range"] { width: 100%; cursor: pointer; }
         .formula-box {
             grid-column: span 2;
             background: #e8f4f8;
@@ -88,19 +70,17 @@
             border-radius: 8px;
             display: block;
             margin: 0 auto;
+            max-width: 100%;
         }
-        .disabled {
-            opacity: 0.4;
-            pointer-events: none;
-        }
+        .disabled { opacity: 0.4; pointer-events: none; }
     </style>
 </head>
 <body>
 
 <div class="container">
     <h2>Реакція середовищ на зсувну деформацію</h2>
-    <p class="description">Перевірте, як виникають дотичні напруги (σ_xy) при зсуві верхньої площини для різних моделей.</p>
-    
+    <p class="description">Перевір, як виникають дотичні напруги (σ_xy) при зсуві верхньої площини для різних моделей.</p>
+
     <div class="controls-grid">
         <div class="model-selector">
             <label><input type="radio" name="model" value="ideal" checked> Ідеальна рідина</label>
@@ -129,11 +109,11 @@
 <script>
     const canvas = document.getElementById('simCanvas');
     const ctx = canvas.getContext('2d');
-    
+
     const radios = document.getElementsByName('model');
     const speedSlider = document.getElementById('speedSlider');
     const dispSlider = document.getElementById('dispSlider');
-    
+
     const groupSpeed = document.getElementById('group-speed');
     const groupDisp = document.getElementById('group-disp');
     const formulaText = document.getElementById('formulaText');
@@ -141,29 +121,27 @@
     const valDisp = document.getElementById('valDisp');
 
     let currentModel = 'ideal';
-    let currentX = 0; // Поточне зміщення верхньої пластини
+    let currentX = 0;
 
     function updateUI() {
-        // Знаходимо вибрану модель
         for (let r of radios) {
             if (r.checked) currentModel = r.value;
         }
 
-        // Активація повзунків залежно від моделі
         if (currentModel === 'ideal') {
             groupSpeed.classList.remove('disabled');
             groupDisp.classList.add('disabled');
             dispSlider.value = 0;
-            formulaText.innerHTML = "<strong>Ідеальна рідина:</strong> σ'_xy = 0 (Дотичні напруги відсутні завжди)";
+            formulaText.innerHTML = "<strong>Ідеальна рідина:</strong> σ'_xy = 0 (дотичні напруги відсутні завжди)";
             formulaText.style.borderColor = "#95a5a6";
-        } 
+        }
         else if (currentModel === 'viscous') {
             groupSpeed.classList.remove('disabled');
             groupDisp.classList.add('disabled');
             dispSlider.value = 0;
             formulaText.innerHTML = "<strong>В'язка рідина:</strong> σ'_xy = η · (dv_x / dy) <br><small>Напруга залежить тільки від <b>швидкості</b> зсуву.</small>";
             formulaText.style.borderColor = "#e74c3c";
-        } 
+        }
         else if (currentModel === 'elastic') {
             groupSpeed.classList.add('disabled');
             groupDisp.classList.remove('disabled');
@@ -176,17 +154,13 @@
         valDisp.innerText = dispSlider.value;
     }
 
-    // Слухачі подій
-    for (let r of radios) {
-        r.addEventListener('change', updateUI);
-    }
+    for (let r of radios) { r.addEventListener('change', updateUI); }
     speedSlider.addEventListener('input', updateUI);
     dispSlider.addEventListener('input', updateUI);
 
-    // Функція малювання стрілки
     function drawArrow(fromX, fromY, toX, toY, color, width) {
         if (Math.abs(toX - fromX) < 1 && Math.abs(toY - fromY) < 1) return;
-        const headlen = 10; 
+        const headlen = 10;
         const angle = Math.atan2(toY - fromY, toX - fromX);
         ctx.beginPath();
         ctx.moveTo(fromX, fromY);
@@ -203,27 +177,30 @@
         ctx.fill();
     }
 
-    function draw() {
+    let last = null;
+    function draw(ts) {
+        if (last === null) last = ts;
+        let dt = (ts - last) / 1000;
+        last = ts;
+        if (dt > 0.05) dt = 0.05;
+
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        
+
         let speed = parseFloat(speedSlider.value);
         let disp = parseFloat(dispSlider.value);
         let stress = 0;
 
-        // Логіка оновлення позиції та напруги
         if (currentModel === 'elastic') {
             currentX = disp;
-            stress = disp * 0.8; // Напруга пропорційна деформації
+            stress = disp * 0.8;
         } else {
-            currentX += speed * 0.5;
-            // Циклічний рух для рідин
-            if (currentX > 150) currentX = -150;
-            if (currentX < -150) currentX = 150;
-            
+            currentX += speed * 30 * dt;
+            if (currentX > 150 || currentX < -150) currentX = 0;
+
             if (currentModel === 'viscous') {
-                stress = speed * 8; // Напруга пропорційна швидкості
+                stress = speed * 8;
             } else {
-                stress = 0; // Ідеальна рідина
+                stress = 0;
             }
         }
 
@@ -232,24 +209,22 @@
         const bottomY = 220;
         const width = 200;
 
-        // Малювання матеріалу
         ctx.beginPath();
-        ctx.moveTo(cx - width/2, bottomY); // Нижній лівий кут (нерухомий)
-        ctx.lineTo(cx + width/2, bottomY); // Нижній правий кут
-        ctx.lineTo(cx + width/2 + currentX, topY); // Верхній правий
-        ctx.lineTo(cx - width/2 + currentX, topY); // Верхній лівий
+        ctx.moveTo(cx - width/2, bottomY);
+        ctx.lineTo(cx + width/2, bottomY);
+        ctx.lineTo(cx + width/2 + currentX, topY);
+        ctx.lineTo(cx - width/2 + currentX, topY);
         ctx.closePath();
-        
+
         if (currentModel === 'elastic') ctx.fillStyle = 'rgba(41, 128, 185, 0.2)';
         else if (currentModel === 'viscous') ctx.fillStyle = 'rgba(231, 76, 60, 0.2)';
         else ctx.fillStyle = 'rgba(149, 165, 166, 0.2)';
-        
+
         ctx.fill();
         ctx.strokeStyle = '#7f8c8d';
         ctx.lineWidth = 2;
         ctx.stroke();
 
-        // Нижня нерухома площина
         ctx.fillStyle = '#2c3e50';
         ctx.fillRect(cx - width/2 - 50, bottomY, width + 100, 20);
         ctx.textAlign = 'center';
@@ -257,18 +232,16 @@
         ctx.font = '12px sans-serif';
         ctx.fillText('Нерухома основа (v = 0, u = 0)', cx, bottomY + 14);
 
-        // Верхня рухома площина
         ctx.fillStyle = '#34495e';
         ctx.fillRect(cx - width/2 + currentX - 50, topY - 20, width + 100, 20);
 
-        // Відображення напруги (Стрілка зсувної сили на верхній грані)
         if (Math.abs(stress) > 0) {
             let arrowStartX = cx + currentX;
             let arrowEndX = cx + currentX + stress;
             let color = currentModel === 'viscous' ? '#c0392b' : '#2980b9';
-            
+
             drawArrow(arrowStartX, topY - 30, arrowEndX, topY - 30, color, 4);
-            
+
             ctx.fillStyle = color;
             ctx.font = 'bold 16px sans-serif';
             ctx.fillText('Зсувна напруга (σ_xy)', cx + currentX + (stress/2), topY - 45);
@@ -281,9 +254,8 @@
         requestAnimationFrame(draw);
     }
 
-    // Ініціалізація
     updateUI();
-    draw();
+    requestAnimationFrame(draw);
 </script>
 
 </body>
