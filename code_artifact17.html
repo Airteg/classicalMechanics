@@ -1,0 +1,408 @@
+<!-- Palette: Vibrant Tech (#0B2447, #19376D, #576CBC, #10B981, #F59E0B) -->
+<!-- CONFIRMATION: NEITHER Mermaid JS NOR SVG were used anywhere in the output. All rendering is via Canvas, WebGL, or structured HTML/CSS. -->
+<!-- NARRATIVE PLAN:
+1. Introduction: Hook the reader with the fundamental concept of continuous media motion.
+2. Motion Decomposition: Break down complex motion into translation, rotation, and pure deformation using structured HTML.
+3. Cauchy Strain Tensor: Analyze the mathematical components (diagonal vs off-diagonal) of deformation using a Chart.js Doughnut chart.
+4. Strain Rate Tensor: Shift focus to fluid dynamics and the velocity gradient decomposition using a Plotly.js 3D WebGL surface.
+5. Comparative Analysis: Side-by-side breakdown of the two primary tensors using a Chart.js Stacked Bar chart and styled HTML grid.
+-->
+<!-- VISUALIZATION CHOICES:
+- HTML/CSS Hierarchy: Goal: Organize. Shows the conceptual breakdown of motion. Method: Structured DOM. No SVG.
+- Doughnut Chart: Goal: Compare composition. Visualizes the 9 tensor components (3 diagonal, 6 off-diagonal). Method: Chart.js Canvas. No SVG.
+- 3D Surface Plot: Goal: Relationships/Inform. Visualizes a continuous velocity gradient field. Method: Plotly.js WebGL. No SVG.
+- Stacked Bar Chart: Goal: Compare. Shows velocity gradient decomposed into symmetric (strain rate) and antisymmetric (rotation). Method: Chart.js Canvas. No SVG.
+- CSS Grid Table: Goal: Organize. Direct comparison of physical properties. Method: HTML/Tailwind. No SVG.
+-->
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тензори Деформації та Швидкості Деформації | Інфографіка</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700;900&display=swap');
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #f1f5f9;
+            color: #0f172a;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 650px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 380px;
+            max-height: 450px;
+        }
+        @media (max-width: 768px) {
+            .chart-container {
+                height: 300px;
+            }
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .gradient-text {
+            background: linear-gradient(90deg, #19376D, #576CBC);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .math-symbol {
+            font-family: 'Times New Roman', Times, serif;
+            font-style: italic;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <header class="bg-[#0B2447] text-white py-12 px-6 shadow-xl relative overflow-hidden">
+        <div class="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none">
+            <div class="w-96 h-96 bg-[#576CBC] rounded-full absolute -top-20 -left-20 blur-3xl"></div>
+            <div class="w-96 h-96 bg-[#10B981] rounded-full absolute bottom-10 right-10 blur-3xl"></div>
+        </div>
+        <div class="max-w-6xl mx-auto relative z-10">
+            <div class="inline-block px-4 py-1 bg-[#19376D] text-[#10B981] font-bold tracking-widest text-sm rounded-full mb-4">МЕХАНІКА СУЦІЛЬНОГО СЕРЕДОВИЩА</div>
+            <h1 class="text-4xl md:text-6xl font-black mb-4 leading-tight">Тензори Деформації<br><span class="text-[#576CBC]">& Швидкості Деформації</span></h1>
+            <p class="text-xl md:text-2xl text-slate-300 max-w-3xl font-light">Кінематичний аналіз зміни форми та об'єму матеріальних тіл у процесі руху простою мовою даних.</p>
+        </div>
+    </header>
+
+    <main class="max-w-6xl mx-auto px-4 py-12 space-y-16">
+
+        <section>
+            <div class="glass-card rounded-2xl shadow-lg p-8 border-l-8 border-[#10B981]">
+                <h2 class="text-2xl font-bold mb-4 text-[#0B2447]">Ключова Ідея</h2>
+                <p class="text-lg leading-relaxed text-slate-700">
+                    Будь-який складний рух малого елемента суцільного середовища можна розкласти на три прості складові: поступальний рух, обертання як цілого (без зміни форми) та власне деформацію (зміну форми й об'єму). Тензор деформації описує геометричну зміну форми та розмірів твердого тіла, тоді як тензор швидкості деформації характеризує темп цієї зміни з часом, що критично важливо для розрахунку сил в'язкого тертя в рідинах та газах.
+                </p>
+            </div>
+        </section>
+
+        <section>
+            <h2 class="text-3xl font-black text-center mb-8 gradient-text">Розкладання Складного Руху</h2>
+            <p class="text-center text-slate-600 max-w-2xl mx-auto mb-10">
+                Загальне переміщення точки середовища з положення <span class="math-symbol">r</span> у положення <span class="math-symbol">r' = r + u</span> математично розщеплюється на незалежні фізичні процеси.
+            </p>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
+                <div class="bg-white p-6 rounded-xl shadow-md border-t-4 border-[#F59E0B]">
+                    <div class="text-5xl mb-4">➡️</div>
+                    <h3 class="font-bold text-xl mb-2 text-[#0B2447]">Поступальний Рух</h3>
+                    <p class="text-sm text-slate-500">Лінійне переміщення елемента як цілого у просторі без зміни орієнтації.</p>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-md border-t-4 border-[#576CBC]">
+                    <div class="text-5xl mb-4">🔄</div>
+                    <h3 class="font-bold text-xl mb-2 text-[#0B2447]">Жорстке Обертання</h3>
+                    <p class="text-sm text-slate-500">Обертання елемента навколо власної осі без зміни внутрішньої структури та форми.</p>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-md border-t-4 border-[#10B981] transform scale-105 relative z-10">
+                    <div class="absolute -top-3 -right-3 bg-[#10B981] text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg">ФОКУС</div>
+                    <div class="text-5xl mb-4">🔀</div>
+                    <h3 class="font-bold text-xl mb-2 text-[#0B2447]">Чиста Деформація</h3>
+                    <p class="text-sm text-slate-500">Зміна кутів між гранями (зсув) та лінійних розмірів (розтяг/стиск). Описується тензором.</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            <div>
+                <h2 class="text-3xl font-black mb-6 text-[#0B2447]">Тензор Деформації Коші <span class="text-2xl text-[#576CBC] font-normal">(Малі деформації)</span></h2>
+                <p class="mb-6 text-slate-600 leading-relaxed">
+                    Зміна відстані між двома нескінченно близькими точками визначається лінійним тензором деформації <span class="math-symbol bg-slate-100 px-1 rounded">u<sub>ik</sub></span>. Він є матрицею 3x3, яка повністю описує стан деформації в точці.
+                </p>
+                <div class="space-y-4">
+                    <div class="flex items-start">
+                        <div class="bg-[#19376D] text-white w-8 h-8 rounded-full flex items-center justify-center font-bold mr-4 shrink-0 mt-1">1</div>
+                        <div>
+                            <h4 class="font-bold text-lg text-[#19376D]">Діагональні компоненти</h4>
+                            <p class="text-sm text-slate-600"><span class="math-symbol">u<sub>xx</sub>, u<sub>yy</sub>, u<sub>zz</sub></span>: Описують відносне лінійне видовження або стиснення. Їхня сума (слід тензора) дорівнює відносній зміні об'єму <span class="math-symbol">&Delta;V/V</span>.</p>
+                        </div>
+                    </div>
+                    <div class="flex items-start">
+                        <div class="bg-[#F59E0B] text-white w-8 h-8 rounded-full flex items-center justify-center font-bold mr-4 shrink-0 mt-1">2</div>
+                        <div>
+                            <h4 class="font-bold text-lg text-[#F59E0B]">Недіагональні компоненти</h4>
+                            <p class="text-sm text-slate-600"><span class="math-symbol">u<sub>xy</sub>, u<sub>xz</sub>...</span>: Описують деформацію зсуву — зміну кутів між гранями елементарного об'єму, які до деформації були прямими.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-white p-6 rounded-2xl shadow-lg border border-slate-100">
+                <h3 class="text-center font-bold text-sm text-slate-400 mb-2 uppercase tracking-wider">Структура Матриці Тензора</h3>
+                <div class="chart-container">
+                    <canvas id="tensorComponentsChart"></canvas>
+                </div>
+                <p class="text-xs text-center text-slate-400 mt-4">Графік показує кількісний розподіл 9 компонентів тензора у тривимірному просторі.</p>
+            </div>
+        </section>
+
+        <section class="bg-[#0B2447] rounded-3xl p-8 md:p-12 text-white shadow-2xl">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-12">
+                <div class="order-2 lg:order-1 bg-white/5 rounded-2xl p-2">
+                    <h3 class="text-center font-bold text-sm text-slate-300 mb-2 uppercase tracking-wider pt-4">Візуалізація Градієнта Поля Швидкостей</h3>
+                    <div id="velocityFieldPlot" class="w-full h-[400px]"></div>
+                </div>
+                <div class="order-1 lg:order-2 flex flex-col justify-center">
+                    <div class="inline-block px-4 py-1 bg-[#10B981]/20 text-[#10B981] font-bold text-sm rounded-full mb-4 self-start">ГІДРОДИНАМІКА</div>
+                    <h2 class="text-3xl font-black mb-6">Тензор Швидкості Деформації</h2>
+                    <p class="mb-6 text-slate-300 leading-relaxed">
+                        Для рідин та газів важливішим є не саме зміщення, а <span class="font-bold text-white">швидкість</span>, з якою відбувається деформація. Градієнт поля швидкостей розкладається на дві ключові складові математичні частини:
+                    </p>
+                    <ul class="space-y-4 mb-8">
+                        <li class="flex items-center bg-white/10 p-4 rounded-lg border-l-4 border-[#10B981]">
+                            <div class="text-2xl mr-4">🧮</div>
+                            <div>
+                                <span class="font-bold block text-[#10B981]">Симетрична частина D<sub>ik</sub></span>
+                                <span class="text-sm text-slate-300">Тензор швидкості деформації. Визначає темп зміни форми.</span>
+                            </div>
+                        </li>
+                        <li class="flex items-center bg-white/10 p-4 rounded-lg border-l-4 border-[#F59E0B]">
+                            <div class="text-2xl mr-4">🌪️</div>
+                            <div>
+                                <span class="font-bold block text-[#F59E0B]">Антисиметрична частина &Omega;<sub>ik</sub></span>
+                                <span class="text-sm text-slate-300">Описує миттєве обертання частинки як абсолютно твердого тіла. Не викликає внутрішніх напруг.</span>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <section>
+            <h2 class="text-3xl font-black text-center mb-10 text-[#0B2447]">Декомпозиція Градієнта Швидкості по Осях</h2>
+            <div class="bg-white p-6 rounded-2xl shadow-lg border border-slate-100 max-w-4xl mx-auto">
+                <div class="chart-container">
+                    <canvas id="gradientDecompositionChart"></canvas>
+                </div>
+                <p class="text-sm text-center text-slate-500 mt-6 max-w-2xl mx-auto">
+                    Ця діаграма ілюструє концептуальне розбиття повної зміни швидкості вздовж кожної осі координат на внесок від швидкості деформації (симетрична частина) та жорсткого обертання (антисиметрична частина).
+                </p>
+            </div>
+        </section>
+
+        <section class="mb-16">
+            <h2 class="text-3xl font-black text-center mb-10 gradient-text">Порівняльна Характеристика Тензорів</h2>
+            <div class="overflow-hidden rounded-2xl shadow-xl border border-slate-200">
+                <table class="w-full text-left border-collapse bg-white">
+                    <thead>
+                        <tr class="bg-[#19376D] text-white">
+                            <th class="p-5 font-bold uppercase tracking-wider text-sm w-1/4">Властивість</th>
+                            <th class="p-5 font-bold uppercase tracking-wider text-sm w-3/8 border-l border-[#576CBC]/30">Тензор деформації (u<sub>ik</sub>)</th>
+                            <th class="p-5 font-bold uppercase tracking-wider text-sm w-3/8 border-l border-[#576CBC]/30">Тензор швидкості деформації (D<sub>ik</sub>)</th>
+                        </tr>
+                    </thead>
+                    <tbody class="text-slate-700 divide-y divide-slate-100">
+                        <tr class="hover:bg-slate-50 transition-colors">
+                            <td class="p-5 font-bold text-[#0B2447]">Базова величина</td>
+                            <td class="p-5 border-l border-slate-100">Вектор зміщення <span class="math-symbol font-bold">u</span></td>
+                            <td class="p-5 border-l border-slate-100 bg-slate-50/50">Вектор швидкості <span class="math-symbol font-bold">v</span></td>
+                        </tr>
+                        <tr class="hover:bg-slate-50 transition-colors">
+                            <td class="p-5 font-bold text-[#0B2447]">Застосування</td>
+                            <td class="p-5 border-l border-slate-100">
+                                <span class="inline-block px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-md font-bold mb-1">Теорія пружності</span><br>
+                                Тверді тіла
+                            </td>
+                            <td class="p-5 border-l border-slate-100 bg-slate-50/50">
+                                <span class="inline-block px-2 py-1 bg-emerald-100 text-emerald-800 text-xs rounded-md font-bold mb-1">Гідродинаміка</span><br>
+                                Рідини та гази
+                            </td>
+                        </tr>
+                        <tr class="hover:bg-slate-50 transition-colors">
+                            <td class="p-5 font-bold text-[#0B2447]">Фізичний зміст</td>
+                            <td class="p-5 border-l border-slate-100">Наскільки змінилися форма та об'єм тіла</td>
+                            <td class="p-5 border-l border-slate-100 bg-slate-50/50">Як швидко змінюються форма та об'єм з часом</td>
+                        </tr>
+                        <tr class="hover:bg-slate-50 transition-colors">
+                            <td class="p-5 font-bold text-[#0B2447]">Зв'язок із напругами</td>
+                            <td class="p-5 border-l border-slate-100">Визначає пружні напруги<br><span class="text-xs text-slate-400 font-bold uppercase">(Закон Гука)</span></td>
+                            <td class="p-5 border-l border-slate-100 bg-slate-50/50">Визначає в'язкі напруги<br><span class="text-xs text-slate-400 font-bold uppercase">(Закон Ньютона)</span></td>
+                        </tr>
+                        <tr class="hover:bg-slate-50 transition-colors">
+                            <td class="p-5 font-bold text-[#0B2447]">Симетрія</td>
+                            <td class="p-5 border-l border-slate-100"><span class="math-symbol">u<sub>ik</sub> = u<sub>ki</sub></span> (Симетричний)</td>
+                            <td class="p-5 border-l border-slate-100 bg-slate-50/50"><span class="math-symbol">D<sub>ik</sub> = D<sub>ki</sub></span> (Симетричний)</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="mt-8 bg-amber-50 p-6 rounded-xl border border-amber-200">
+                <h4 class="font-bold text-amber-800 mb-2 flex items-center"><span class="text-2xl mr-2">💡</span> Висновок</h4>
+                <p class="text-amber-900 leading-relaxed">
+                    Тензори деформації та швидкості деформації є математичними інструментами, які "відфільтровують" рух середовища як цілого (поступальний і обертальний рухи) і залишають лише чисту деформацію (розтягнення, стиснення, зсув). Вони є ключовими для побудови реологічних рівнянь, які пов'язують кінематику середовища з внутрішніми силами (тензором напруг).
+                </p>
+            </div>
+        </section>
+    </main>
+
+    <footer class="bg-[#0B2447] py-8 text-center text-slate-400 border-t border-slate-700">
+        <p class="text-sm">Аналітика Суцільного Середовища | Візуалізація Даних</p>
+    </footer>
+
+    <script>
+        function wrapLabel(label) {
+            if (label.length > 16) {
+                const words = label.split(' ');
+                const lines = [];
+                let currentLine = '';
+                words.forEach(word => {
+                    if ((currentLine + word).length > 16) {
+                        if (currentLine.trim() !== '') lines.push(currentLine.trim());
+                        currentLine = word + ' ';
+                    } else {
+                        currentLine += word + ' ';
+                    }
+                });
+                if (currentLine.trim() !== '') lines.push(currentLine.trim());
+                return lines;
+            }
+            return label;
+        }
+
+        const tooltipConfig = {
+            tooltip: {
+                callbacks: {
+                    title: function(tooltipItems) {
+                        const item = tooltipItems[0];
+                        let label = item.chart.data.labels[item.dataIndex];
+                        if (Array.isArray(label)) {
+                            return label.join(' ');
+                        } else {
+                            return label;
+                        }
+                    }
+                }
+            }
+        };
+
+        const ctxDoughnut = document.getElementById('tensorComponentsChart').getContext('2d');
+        const rawLabelsDoughnut = ['Діагональні (Видовження/Стиск)', 'Недіагональні (Зсув кутів)'];
+        const wrappedLabelsDoughnut = rawLabelsDoughnut.map(wrapLabel);
+
+        new Chart(ctxDoughnut, {
+            type: 'doughnut',
+            data: {
+                labels: wrappedLabelsDoughnut,
+                datasets: [{
+                    data: [3, 6],
+                    backgroundColor: ['#19376D', '#F59E0B'],
+                    borderWidth: 2,
+                    borderColor: '#ffffff',
+                    hoverOffset: 10
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    ...tooltipConfig,
+                    legend: { position: 'bottom' },
+                    title: {
+                        display: true,
+                        text: 'Кількість компонент матриці 3x3',
+                        padding: 20
+                    }
+                },
+                cutout: '70%'
+            }
+        });
+
+        const ctxBar = document.getElementById('gradientDecompositionChart').getContext('2d');
+        const rawLabelsBar = ['Вісь X (d/dx)', 'Вісь Y (d/dy)', 'Вісь Z (d/dz)'];
+        const wrappedLabelsBar = rawLabelsBar.map(wrapLabel);
+
+        new Chart(ctxBar, {
+            type: 'bar',
+            data: {
+                labels: wrappedLabelsBar,
+                datasets: [
+                    {
+                        label: 'Швидкість деформації (Dik)',
+                        data: [70, 45, 85],
+                        backgroundColor: '#10B981',
+                        borderRadius: 4
+                    },
+                    {
+                        label: 'Жорстке обертання (Ωik)',
+                        data: [30, 55, 15],
+                        backgroundColor: '#576CBC',
+                        borderRadius: 4
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: { stacked: true, grid: { display: false } },
+                    y: { 
+                        stacked: true, 
+                        beginAtZero: true,
+                        title: { display: true, text: 'Умовні одиниці градієнта' }
+                    }
+                },
+                plugins: {
+                    ...tooltipConfig,
+                    legend: { position: 'top' }
+                }
+            }
+        });
+
+        const size = 30;
+        const x_vals = [];
+        const y_vals = [];
+        const z_data = [];
+
+        for(let i = 0; i < size; i++) {
+            x_vals.push(-Math.PI + (2 * Math.PI * i) / size);
+            y_vals.push(-Math.PI + (2 * Math.PI * i) / size);
+            z_data.push(new Array(size));
+        }
+
+        for(let i = 0; i < size; i++) {
+            for(let j = 0; j < size; j++) {
+                z_data[j][i] = Math.sin(x_vals[i]) * Math.cos(y_vals[j]) * 5; 
+            }
+        }
+
+        const plotData = [{
+            z: z_data,
+            x: x_vals,
+            y: y_vals,
+            type: 'surface',
+            colorscale: [
+                ['0.0', '#0B2447'],
+                ['0.3', '#576CBC'],
+                ['0.6', '#10B981'],
+                ['1.0', '#F59E0B']
+            ],
+            showscale: false
+        }];
+
+        const plotLayout = {
+            margin: { l: 0, r: 0, b: 0, t: 0 },
+            paper_bgcolor: 'rgba(0,0,0,0)',
+            plot_bgcolor: 'rgba(0,0,0,0)',
+            scene: {
+                xaxis: { showgrid: false, zeroline: false, showticklabels: false, title: '' },
+                yaxis: { showgrid: false, zeroline: false, showticklabels: false, title: '' },
+                zaxis: { showgrid: false, zeroline: false, showticklabels: false, title: '' },
+                camera: { eye: { x: 1.5, y: 1.5, z: 1.2 } }
+            }
+        };
+
+        const plotConfig = { responsive: true, displayModeBar: false };
+
+        Plotly.newPlot('velocityFieldPlot', plotData, plotLayout, plotConfig);
+
+    </script>
+</body>
+</html>
