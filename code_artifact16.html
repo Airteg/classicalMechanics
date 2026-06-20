@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="uk">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Візуалізація: Вплив крайових умов на потік</title>
+    <style>
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background-color: #f8f9fa;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 20px;
+        color: #333;
+      }
+      .container {
+        background: white;
+        padding: 25px;
+        border-radius: 10px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        text-align: center;
+        max-width: 750px;
+      }
+      .btn-group {
+        margin: 20px 0;
+      }
+      button {
+        padding: 10px 20px;
+        font-size: 15px;
+        font-weight: bold;
+        border: 2px solid #007bff;
+        background-color: white;
+        color: #007bff;
+        cursor: pointer;
+        border-radius: 5px;
+        margin: 0 10px;
+        transition: all 0.2s ease;
+      }
+      button.active {
+        background-color: #007bff;
+        color: white;
+      }
+      canvas {
+        background: #ffffff;
+        border: 2px solid #333;
+        border-radius: 4px;
+        max-width: 100%;
+      }
+      .desc {
+        margin-top: 15px;
+        font-size: 1.05em;
+        min-height: 50px;
+        line-height: 1.4;
+      }
+      .formula {
+        font-family: monospace;
+        background: #f1f3f5;
+        padding: 4px 8px;
+        border-radius: 4px;
+        color: #d32f2f;
+      }
+      .hint {
+        margin-top: 10px;
+        font-size: 0.85em;
+        color: #666;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h2>Демонстрація крайових умов у гідродинаміці</h2>
+      <p>
+        Зміна типу крайової умови на стінках каналу радикально змінює форму
+        профілю швидкостей течії.
+      </p>
+
+      <div class="btn-group">
+        <button id="btn-ideal" class="active" onclick="setCondition('ideal')">
+          Ідеальна рідина (проковзування)
+        </button>
+        <button id="btn-viscous" onclick="setCondition('viscous')">
+          В'язка рідина (прилипання)
+        </button>
+      </div>
+
+      <canvas id="flowCanvas" width="650" height="250"></canvas>
+
+      <div class="desc" id="conditionDesc"></div>
+      <p class="hint">
+        Ліворуч — епюра (профіль) швидкості; праворуч — анімований потік.
+        Середній розхід в обох режимах однаковий, тож порівнюється саме форма
+        профілю.
+      </p>
+    </div>
+
+    <script>
+      const canvas = document.getElementById("flowCanvas");
+      const ctx = canvas.getContext("2d");
+
+      const W = canvas.width;
+      const H = canvas.height;
+      const WALL = 30;
+      const MID_Y = H / 2;
+      const R = H / 2 - WALL;
+      const PROFILE_X0 = 30;
+      const PROFILE_SCALE = 22;
+      const FLOW_START = 175;
+
+      let currentMode = "ideal";
+
+      const particles = [];
+      const numParticles = 150;
+      for (let i = 0; i < numParticles; i++) {
+        particles.push({
+          x: FLOW_START + Math.random() * (W - FLOW_START),
+          y: WALL + Math.random() * (H - 2 * WALL),
+        });
+      }
+
+      function setCondition(mode) {
+        currentMode = mode;
+        document
+          .getElementById("btn-ideal")
+          .classList.toggle("active", mode === "ideal");
+        document
+          .getElementById("btn-viscous")
+          .classList.toggle("active", mode === "viscous");
+        updateDesc();
+      }
+
+      function getVelocity(y) {
+        const distFromCenter = Math.abs(y - MID_Y);
+        if (currentMode === "ideal") {
+          return 3.3;
+        } else {
+          if (distFromCenter >= R) return 0;
+          return 5 * (1 - (distFromCenter * distFromCenter) / (R * R));
+        }
+      }
+
+      function updateDesc() {
+        const descEl = document.getElementById("conditionDesc");
+        if (currentMode === "ideal") {
+          descEl.innerHTML = `<strong>Крайова умова проковзування:</strong> на стінках нормальна швидкість <span class="formula">v_n = 0</span>, дотична вільна. Рівномірний профіль; тертя об стінки відсутнє.`;
+        } else {
+          descEl.innerHTML = `<strong>Крайова умова прилипання:</strong> на стінках повна швидкість <span class="formula">v = 0</span>. В'язкі сили гальмують рідину біля стінок → параболічний профіль течії Пуазейля.`;
+        }
+      }
+
+      let last = null;
+      function draw(ts) {
+        if (last === null) last = ts;
+        let dt = (ts - last) / 1000;
+        last = ts;
+        if (dt > 0.05) dt = 0.05;
+
+        ctx.clearRect(0, 0, W, H);
+
+        ctx.fillStyle = "#6c757d";
+        ctx.fillRect(0, 0, W, WALL);
+        ctx.fillRect(0, H - WALL, W, WALL);
+
+        ctx.fillStyle = "#fff";
+        ctx.font = "12px sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText("Тверда стінка (границя S)", W / 2, 19);
+        ctx.fillText("Тверда стінка (границя S)", W / 2, H - 11);
+
+        ctx.setLineDash([5, 4]);
+        ctx.strokeStyle = "#ced4da";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(FLOW_START - 15, WALL);
+        ctx.lineTo(FLOW_START - 15, H - WALL);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        ctx.fillStyle = "#17a2b8";
+        for (let p of particles) {
+          const v = getVelocity(p.y);
+          p.x += v * dt * 55;
+          if (p.x > W) {
+            p.x = FLOW_START;
+            p.y = WALL + Math.random() * (H - 2 * WALL);
+          }
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        ctx.strokeStyle = "#adb5bd";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(PROFILE_X0, WALL);
+        ctx.lineTo(PROFILE_X0, H - WALL);
+        ctx.stroke();
+
+        ctx.strokeStyle = "rgba(211, 47, 47, 0.35)";
+        ctx.lineWidth = 2;
+        for (let y = WALL + 15; y < H - WALL; y += 28) {
+          const v = getVelocity(y);
+          if (v > 0.01) {
+            const plotX = PROFILE_X0 + v * PROFILE_SCALE;
+            ctx.beginPath();
+            ctx.moveTo(PROFILE_X0, y);
+            ctx.lineTo(plotX, y);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(plotX, y);
+            ctx.lineTo(plotX - 6, y - 4);
+            ctx.lineTo(plotX - 6, y + 4);
+            ctx.closePath();
+            ctx.fillStyle = "rgba(211, 47, 47, 0.35)";
+            ctx.fill();
+          }
+        }
+
+        ctx.strokeStyle = "#d32f2f";
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        let started = false;
+        for (let y = WALL; y <= H - WALL; y += 4) {
+          const v = getVelocity(y);
+          const plotX = PROFILE_X0 + v * PROFILE_SCALE;
+          if (!started) {
+            ctx.moveTo(plotX, y);
+            started = true;
+          } else ctx.lineTo(plotX, y);
+        }
+        ctx.stroke();
+
+        requestAnimationFrame(draw);
+      }
+
+      updateDesc();
+      requestAnimationFrame(draw);
+    </script>
+  </body>
+</html>
